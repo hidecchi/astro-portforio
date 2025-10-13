@@ -1,0 +1,31 @@
+---
+const { emphasis, size } = Astro.props;
+---
+
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  class={`check-icon ${emphasis === true ? "emphasis" : ""}`}
+  ><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><path d="m9 11 3 3L22 4"
+  ></path></svg
+>
+
+<style>
+  .check-icon {
+    margin-right: 5px;
+    height: 16px;
+    width: 16px;
+    color: #22c55e;
+    transform: translateY(5px);
+  }
+  .emphasis {
+    color: #c522a0;
+  }
+</style>

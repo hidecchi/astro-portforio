@@ -1,0 +1,62 @@
+---
+import { AstroFont } from "astro-font";
+import "../styles/reset.css";
+---
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <meta
+      name="description"
+      content="モダンなWebアプリケーション開発から、アニメーション実装まで。
+高品質なコードと迅速な開発で、あなたのプロジェクトを成功に導きます。"
+    />
+    <meta name="og:title" content="フロントエンドエンジニア 大川英俊" />
+    <meta
+      name="og:description"
+      content="モダンなWebアプリケーション開発から、アニメーション実装まで。
+高品質なコードと迅速な開発で、あなたのプロジェクトを成功に導きます。"
+    />
+    <meta property="og:site_name" content="フロントエンドエンジニア 大川英俊" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://kittsun.net//ogp.png" />
+    <meta property="og:url" content="https://kittsun.net/" />
+    <title>フロントエンドエンジニア 大川英俊</title>
+    <AstroFont
+      config={[
+        {
+          src: [],
+          name: "Poppins",
+          // Google Fonts URL
+          googleFontsURL:
+            "https://fonts.googleapis.com/css2?family=Noto+Sans+JP,wght@0,400;0,500;0,600;0,700&display=swap",
+          preload: true,
+          display: "swap",
+          selector: "body",
+          fallback: "sans-serif",
+        },
+      ]}
+    />
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>
+
+<style>
+  html,
+  body {
+    line-height: 1.6;
+    color: #3f3f41;
+    font-family: "Noto Sans JP", sans-serif;
+  }
+</style>
+
+<script>
+  import { initThree } from "../libs/initThree"; // 分離した関数をインポート
+  initThree();
+</script>

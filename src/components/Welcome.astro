@@ -1,0 +1,74 @@
+---
+
+---
+
+<section class="main-visual-wrapper">
+  <div class="main-visual">
+    <h1 aria-label="フロントエンドエンジニア 大川英俊">Front End Engineer</h1>
+    <p class="catch">
+      モダンなWebアプリケーション開発から、アニメーション実装まで。<br />
+      <strong>高品質なコードと迅速な開発</strong
+      >で、あなたのプロジェクトを成功に導きます。
+    </p>
+  </div>
+</section>
+
+<style>
+  .main-visual-wrapper {
+    position: relative;
+    height: 100svh;
+  }
+  .main-visual {
+    width: 100%;
+    height: 100svh;
+    padding: 0 20px;
+    z-index: 2;
+    display: grid;
+    place-content: center;
+    position: relative;
+    z-index: 2;
+  }
+
+  h1 {
+    font-size: 60px;
+    margin-bottom: 0.5em;
+    letter-spacing: 0.03em;
+  }
+
+  strong {
+    font-size: 1.3em;
+    background: linear-gradient(transparent 70%, rgba(102, 230, 202, 0.4) 50%);
+  }
+
+  .catch {
+    font-size: 20px;
+    line-height: 1.8;
+  }
+
+  @media (max-width: 900px) {
+    h1 {
+      font-size: 48px;
+      letter-spacing: 0;
+    }
+
+    .catch {
+      font-size: 16px;
+    }
+  }
+  @media (max-width: 540px) {
+    .main-visual-wrapper {
+      background: linear-gradient(
+        67deg,
+        rgba(74, 161, 255, 0) 50%,
+        rgb(74 255 115 / 10%)
+      );
+    }
+    h1 {
+      font-size: 30px;
+    }
+
+    .catch {
+      font-size: 16px;
+    }
+  }
+</style>

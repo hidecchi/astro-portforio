@@ -1,0 +1,148 @@
+---
+
+---
+
+<section class="contact">
+  <div class="contact-inner">
+    <h2>お問い合わせ</h2>
+    <p class="message">
+      お仕事のご依頼がございましたら、お気軽にお問い合わせください。
+      <br />
+      <span class="require-text">*</span>は必須項目です。
+    </p>
+    <form action="https://ssgform.com/s/yh7xdTkQCx3P" method="post">
+      <div class="form-item">
+        <label for="company">会社名</label>
+        <input type="text" name="会社名" id="company" />
+      </div>
+      <div class="form-item">
+        <label for="name">お名前<span class="require-text">*</span></label>
+        <input type="text" required name="お名前" id="name" />
+      </div>
+      <div class="form-item">
+        <label for="email"
+          >メールアドレス<span class="require-text">*</span></label
+        >
+        <input type="email" required name="メールアドレス" id="email" />
+      </div>
+      <div class="form-item">
+        <label for="message"
+          >お問い合わせ内容<span class="require-text">*</span></label
+        >
+        <textarea required name="お問い合わせ内容" id="message"></textarea>
+      </div>
+      <button type="submit" class="submit-button"> 送信する </button>
+    </form>
+  </div>
+</section>
+
+<style>
+  .contact {
+    padding-top: 40px;
+    padding-bottom: 120px;
+    background: linear-gradient(
+      224deg,
+      rgba(74, 161, 255, 0) 80%,
+      rgb(74 255 115 / 10%)
+    );
+  }
+  .contact-inner {
+    max-width: 680px;
+    padding: 0 40px;
+    margin: 0 auto;
+  }
+
+  h2 {
+    margin-bottom: 24px;
+    font-size: 24px;
+    text-align: center;
+  }
+  .message {
+    width: fit-content;
+    margin: 0 auto 24px;
+  }
+  form {
+    display: block;
+  }
+  .form-item {
+    margin-bottom: 24px;
+  }
+  label {
+    color: #444;
+    display: inline-block;
+    margin-bottom: 8px;
+  }
+  .require-text {
+    color: red;
+    font-size: 20px;
+  }
+  input {
+    display: block;
+    width: 100%;
+    height: 40px;
+    padding: 8px;
+    border: 1px solid rgba(119, 128, 161, 0.5);
+    border-radius: 8px;
+    font-size: 18px;
+  }
+  textarea {
+    display: block;
+    width: 100%;
+    height: 320px;
+    padding: 8px;
+    border: 1px solid rgba(119, 128, 161, 0.5);
+    border-radius: 8px;
+    font-size: 18px;
+  }
+
+  .submit-button {
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    appearance: none;
+    font-family: "Noto Sans JP", sans-serif;
+    font-size: 16px;
+    color: white;
+    background-color: #10b981;
+    width: 240px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    margin: 40px auto;
+    border-radius: 24px;
+  }
+
+  @media (any-hover: hover) {
+    .submit-button:hover {
+      background-color: #4ed3a7;
+    }
+  }
+
+  @media (max-width: 540px) {
+    .contact {
+      padding-bottom: 40px;
+    }
+    .contact-inner {
+      padding: 0 20px;
+    }
+
+    .form-item {
+      margin-bottom: 12px;
+    }
+
+    label {
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    input {
+      height: 36px;
+
+      font-size: 16px;
+    }
+    textarea {
+      font-size: 16px;
+    }
+  }
+</style>
