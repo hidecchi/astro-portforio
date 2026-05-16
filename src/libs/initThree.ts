@@ -15,6 +15,7 @@ const SHADER_PATHS = {
 const BG_COLOR = 0xffffff;
 const SPHERE_RADIUS = 0.05;
 const TEXTURE_PATH = "/pic4.png";
+const BG_IMAGE_PATH = "/test2.jpg";
 
 type Point = { x: number; y: number } | null;
 
@@ -23,7 +24,8 @@ export const initThree = async (): Promise<void> => {
   let aspect = document.documentElement.clientWidth / window.innerHeight;
   const originalWidth = document.documentElement.clientWidth;
 
-  const [sceneSphere, scenePallet1, sceneResult] = [
+  const [sceneSphere, scenePallet1, sceneResult, sceneBg] = [
+    new THREE.Scene(),
     new THREE.Scene(),
     new THREE.Scene(),
     new THREE.Scene(),
@@ -84,6 +86,7 @@ export const initThree = async (): Promise<void> => {
   const planeGeometry = new THREE.PlaneGeometry(2 * aspect, 2);
   const planeMaterial = new THREE.ShaderMaterial({
     transparent: true,
+    depthWrite: false,
     side: THREE.DoubleSide,
     uniforms: {
       u_tex: { value: null },
@@ -98,6 +101,15 @@ export const initThree = async (): Promise<void> => {
 
   scenePallet1.add(planeMeshA);
   sceneResult.add(planeMeshB);
+
+  const bgTexture = new THREE.TextureLoader().load(BG_IMAGE_PATH);
+  bgTexture.colorSpace = THREE.SRGBColorSpace;
+
+  const bgPlaneMesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(2 * aspect, 2),
+    new THREE.MeshBasicMaterial({ map: bgTexture }),
+  );
+  sceneBg.add(bgPlaneMesh);
 
   // ---- リサイズ対応 ---- //
   let lastInnerWidth: null | number = null;
@@ -122,6 +134,9 @@ export const initThree = async (): Promise<void> => {
     planeMeshB.geometry.dispose();
     planeMeshA.geometry = new THREE.PlaneGeometry(2 * aspect, 2);
     planeMeshB.geometry = new THREE.PlaneGeometry(2 * aspect, 2);
+
+    bgPlaneMesh.geometry.dispose();
+    bgPlaneMesh.geometry = new THREE.PlaneGeometry(2 * aspect, 2);
   };
   const onScroll = () => {
     // planeMeshB.position.y = (2 * window.pageYOffset) / window.innerHeight;
@@ -223,7 +238,12 @@ export const initThree = async (): Promise<void> => {
 
     renderer.setRenderTarget(null);
     renderer.setClearColor(BG_COLOR, 1);
-    renderer.render(sceneResult, camera);
+    renderer.clear();
+    renderer.render(sceneBg, camera);
+
+    renderer.autoClear = false;
+    // renderer.render(sceneResult, camera);
+    renderer.autoClear = true;
 
     lastTickMouse = mouse;
   };
