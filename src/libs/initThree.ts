@@ -1,9 +1,11 @@
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import * as THREE from "three";
-import { isAndroid, isSmartPhone, loadGLSLFile } from "../utils/utils";
+import { isSmartPhone, loadGLSLFile } from "../utils/utils";
+import { MarchingCubes } from "three/examples/jsm/Addons.js";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
-if (isAndroid()) {
-  document.body.classList.add("is-android");
-}
+gsap.registerPlugin(ScrollTrigger);
 
 const SHADER_PATHS = {
   vertex: new URL("./vertex.glsl", import.meta.url),
@@ -16,6 +18,13 @@ const BG_COLOR = 0xffffff;
 const SPHERE_RADIUS = 0.05;
 const TEXTURE_PATH = "/pic4.png";
 const BG_IMAGE_PATH = "/test2.jpg";
+const BG_IMAGE_BRIGHTNESS_START = 1.0;
+const BG_IMAGE_BRIGHTNESS_END = 0.4;
+const META_OPACITY_START = 0.88;
+const META_OPACITY_END = 0;
+const META_TRANSMISSION_START = 1.0;
+const META_ENV_INTENSITY_START = 0.65;
+const META_CLEARCOAT_START = 0.7;
 
 type Point = { x: number; y: number } | null;
 
@@ -34,12 +43,17 @@ export const initThree = async (): Promise<void> => {
   const camera = new THREE.OrthographicCamera(-aspect, aspect, 1, -1, 0.1, 10);
   camera.position.z = 1;
 
-  const renderer = new THREE.WebGLRenderer();
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setClearColor(BG_COLOR, 1);
   renderer.setSize(originalWidth, window.innerHeight);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.0;
   document.body.appendChild(renderer.domElement);
+
+  const pmremGenerator = new THREE.PMREMGenerator(renderer);
+  const envMap = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
 
   // ---- レンダーターゲット ---- //
   const rtSPhere = new THREE.WebGLRenderTarget(
@@ -105,11 +119,17 @@ export const initThree = async (): Promise<void> => {
   const bgTexture = new THREE.TextureLoader().load(BG_IMAGE_PATH);
   bgTexture.colorSpace = THREE.SRGBColorSpace;
 
+  const bgMaterial = new THREE.MeshBasicMaterial({
+    map: bgTexture,
+    color: new THREE.Color().setScalar(BG_IMAGE_BRIGHTNESS_START),
+  });
   const bgPlaneMesh = new THREE.Mesh(
     new THREE.PlaneGeometry(2 * aspect, 2),
-    new THREE.MeshBasicMaterial({ map: bgTexture }),
+    bgMaterial,
   );
   sceneBg.add(bgPlaneMesh);
+
+  const scrollTriggerEl = document.querySelector(".image-wrapper");
 
   // ---- リサイズ対応 ---- //
   let lastInnerWidth: null | number = null;
@@ -137,12 +157,15 @@ export const initThree = async (): Promise<void> => {
 
     bgPlaneMesh.geometry.dispose();
     bgPlaneMesh.geometry = new THREE.PlaneGeometry(2 * aspect, 2);
+
+    applyMetaballLayout?.();
+
+    ScrollTrigger.refresh();
   };
   const onScroll = () => {
     // planeMeshB.position.y = (2 * window.pageYOffset) / window.innerHeight;
   };
 
-  onResize();
   onScroll();
 
   window.addEventListener("resize", onResize);
@@ -174,6 +197,110 @@ export const initThree = async (): Promise<void> => {
     sphereMesh.position.y = 1 - (2 * mid.y) / window.innerHeight;
     lastMouse = mouse;
   };
+
+  // METABALLS
+  sceneBg.environment = envMap;
+  sceneBg.add(new THREE.AmbientLight(0xffffff, 0.35));
+  sceneBg.add(new THREE.HemisphereLight(0xffffff, 0x6a7a9a, 0.45));
+  const metaLight = new THREE.DirectionalLight(0xffffff, 1.4);
+  metaLight.position.set(1.2, 1.5, 2);
+  sceneBg.add(metaLight);
+  const metaRim = new THREE.DirectionalLight(0xc8e0ff, 0.7);
+  metaRim.position.set(-1.5, 0.3, 1);
+  sceneBg.add(metaRim);
+
+  const metaMat = new THREE.MeshPhysicalMaterial({
+    vertexColors: true,
+    transmission: 1.0,
+    thickness: 0.0,
+    roughness: 0.02,
+    metalness: 0,
+    ior: 1.15,
+    transparent: true,
+    opacity: 0.88,
+    envMap,
+    envMapIntensity: 0.85,
+    clearcoat: 0.7,
+    clearcoatRoughness: 0.03,
+    attenuationColor: new THREE.Color(0xf8f6ff),
+    attenuationDistance: 8.0,
+    side: THREE.FrontSide,
+  });
+  const metaballs = new MarchingCubes(96, metaMat, false, true, 90000);
+  metaballs.isolation = 85;
+  metaballs.renderOrder = 1;
+
+  const META_BALL_SCALE = 0.9 * 2.3;
+  const applyMetaballLayout = () => {
+    metaballs.scale.setScalar(META_BALL_SCALE);
+    metaballs.position.set(aspect * 0.28, 0, 0);
+  };
+  applyMetaballLayout();
+
+  const metaColors = [
+    new THREE.Color(0xf0ecff),
+    new THREE.Color(0xffeef6),
+    new THREE.Color(0xecf6ff),
+    new THREE.Color(0xeefff8),
+  ];
+  const updateMetaballs = (time: number) => {
+    const cx = 0.5;
+    const cy = 0.5;
+    const cz = 0.5;
+
+    metaballs.reset();
+    metaballs.addBall(cx, cy, cz, 1.15, 22, metaColors[0]);
+
+    const wobbleCount = 4;
+    const orbit = 0.055;
+    const breathe = 0.018;
+    for (let i = 0; i < wobbleCount; i++) {
+      const phase = (i / wobbleCount) * Math.PI * 2;
+      const angle = time * 0.35 + phase;
+      const angle2 = time * 0.48 + phase * 1.7;
+      metaballs.addBall(
+        cx + Math.cos(angle) * orbit,
+        cy + Math.sin(angle2) * orbit * 0.85,
+        cz + Math.sin(angle) * orbit,
+        0.22 + breathe * Math.sin(time * 0.6 + phase),
+        16,
+        metaColors[(i + 1) % metaColors.length],
+      );
+    }
+    metaballs.update();
+  };
+
+  sceneBg.add(metaballs);
+
+  if (scrollTriggerEl) {
+    const scrollState = {
+      bgBrightness: BG_IMAGE_BRIGHTNESS_START,
+      metaOpacity: META_OPACITY_START,
+    };
+    gsap.to(scrollState, {
+      bgBrightness: BG_IMAGE_BRIGHTNESS_END,
+      metaOpacity: META_OPACITY_END,
+      ease: "none",
+      scrollTrigger: {
+        trigger: scrollTriggerEl,
+        start: "top top",
+        end: "70% top",
+        scrub: true,
+      },
+      onUpdate: () => {
+        bgMaterial.color.setScalar(scrollState.bgBrightness);
+
+        const o = scrollState.metaOpacity;
+        metaMat.opacity = o;
+        metaMat.transmission = META_TRANSMISSION_START * o;
+        metaMat.envMapIntensity = META_ENV_INTENSITY_START * o;
+        metaMat.clearcoat = META_CLEARCOAT_START * o;
+        metaballs.visible = o > 0.01;
+      },
+    });
+  }
+
+  onResize();
 
   const resetMouse = () => {
     lastMouse = null;
@@ -222,6 +349,8 @@ export const initThree = async (): Promise<void> => {
     }
 
     sphereMaterial.uniforms.u_tick.value += elapsedTime * 30;
+
+    updateMetaballs(clock.getElapsedTime());
 
     requestAnimationFrame(animate);
 
