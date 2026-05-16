@@ -17,16 +17,20 @@ const SHADER_PATHS = {
 const BG_COLOR = 0xffffff;
 const SPHERE_RADIUS = 0.05;
 const TEXTURE_PATH = "/pic4.png";
-const BG_IMAGE_PATH = "/test2.jpg";
+const BG_IMAGE_PATH = "/test4.jpg";
 const BG_IMAGE_BRIGHTNESS_START = 1.0;
-const BG_IMAGE_BRIGHTNESS_END = 0.4;
+const BG_IMAGE_BRIGHTNESS_END = 0.35;
 const META_OPACITY_START = 0.88;
 const META_OPACITY_END = 0;
 const META_TRANSMISSION_START = 1.0;
 const META_ENV_INTENSITY_START = 0.65;
 const META_CLEARCOAT_START = 0.7;
+/** スクロール連動: 終盤で一気に変化させるイージング */
+const SCROLL_SCRUB_EASE = "power4.out";
 
 type Point = { x: number; y: number } | null;
+
+const contactEl = document.querySelector("#contact");
 
 export const initThree = async (): Promise<void> => {
   let tick = 0;
@@ -280,7 +284,7 @@ export const initThree = async (): Promise<void> => {
     gsap.to(scrollState, {
       bgBrightness: BG_IMAGE_BRIGHTNESS_END,
       metaOpacity: META_OPACITY_END,
-      ease: "none",
+      ease: SCROLL_SCRUB_EASE,
       scrollTrigger: {
         trigger: scrollTriggerEl,
         start: "top top",
@@ -367,11 +371,15 @@ export const initThree = async (): Promise<void> => {
 
     renderer.setRenderTarget(null);
     renderer.setClearColor(BG_COLOR, 1);
-    renderer.clear();
-    renderer.render(sceneBg, camera);
+
+    console.log(contactEl?.getBoundingClientRect().top);
+    if (contactEl && contactEl.getBoundingClientRect().top > 400) {
+      renderer.render(sceneBg, camera);
+    } else {
+      renderer.render(sceneResult, camera);
+    }
 
     renderer.autoClear = false;
-    // renderer.render(sceneResult, camera);
     renderer.autoClear = true;
 
     lastTickMouse = mouse;

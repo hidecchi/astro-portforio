@@ -36,147 +36,110 @@ const SERVICE_LIST = [
 ];
 ---
 
-<div class="profile-service">
-  <div class="profile-service-inner">
-    <section class="profile">
-      <h2>プロフィール</h2>
-      <h3>大川英俊</h3>
-      <p>
-        フロントエンドエンジニアとして数々のプロジェクトを経験。<br /><spa
-          class="marker">Webサイト、Webアプリともに開発経験豊富。</spa
-        >
-      </p>
-      <p>
-        大規模メディアサイトや大手飲食店ECサイト、不動産物件紹介アプリや、<br
-          class="pc-only"
-        />給与・税金計算機能を伴う業務アプリ、発注書/請求書作成システムの開発等経験。
-      </p>
-      <p>
-        フリーランスとして活動しています。準委任契約、請負契約どちらもご相談ください。
-      </p>
-      <p class="certification">
-        保有資格：公認会計士試験合格者、応用情報技術者、TOEICスコア805
-      </p>
+<section class="service">
+  <ul class="service-list">
+    {
+      SERVICE_LIST.map((serviceItem) => (
+        <li class="service-list-item">
+          <h3>{serviceItem.title}</h3>
+          <p class="service-description">{serviceItem.description}</p>
+          <ul>
+            {serviceItem.details.map((detail) => (
+              <li class="service-detail-item">
+                <CheckIcon emphasis={detail.emphasis} />
+                {detail.name}
+              </li>
+            ))}
+          </ul>
+        </li>
+      ))
+    }
+  </ul>
+</section>
 
-      <div id="ribbon"></div>
-    </section>
+<style>
+  .service {
+    padding: 180px 0;
+  }
 
-    <section>
-      <h2>サービス</h2>
-      <ul class="service-list">
-        {
-          SERVICE_LIST.map((serviceItem) => (
-            <li class="service-list-item">
-              <h3>{serviceItem.title}</h3>
-              <p class="service-description">{serviceItem.description}</p>
-              <ul>
-                {serviceItem.details.map((detail) => (
-                  <li class="service-detail-item">
-                    <CheckIcon emphasis={detail.emphasis} />
-                    {detail.name}
-                  </li>
-                ))}
-              </ul>
-            </li>
-          ))
-        }
-      </ul>
-    </section>
-  </div>
+  .profile {
+    display: grid;
+    gap: 12px;
+  }
+  h2 {
+    font-size: 24px;
+  }
+  h3 {
+    font-size: 20px;
+  }
+  .marker {
+    font-size: 18px;
+    font-weight: 600;
+    background: linear-gradient(transparent 70%, rgba(102, 230, 202, 0.4) 50%);
+  }
+  .certification {
+    margin-top: 12px;
+  }
+  #ribbon {
+    width: 100%;
+    max-width: 600px;
+    aspect-ratio: 1;
+  }
+  .service-list {
+    margin-top: 12px;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 40px;
+  }
 
-  <style>
+  .service-list-item {
+    padding: 20px;
+    border: 1px solid rgba(119, 128, 161, 0.2);
+    border-radius: 16px;
+    display: grid;
+    gap: 8px;
+    background-color: white;
+  }
+  .service-list-item:hover {
+    background-color: #ebf8f6;
+  }
+
+  .service-description {
+    color: #555;
+  }
+
+  .service-detail-item {
+    display: flex;
+    align-items: flex-start;
+    font-weight: 500;
+  }
+
+  .icon {
+    margin-right: 5px;
+    height: 16px;
+    width: 16px;
+    color: #22c55e;
+    transform: translateY(5px);
+  }
+
+  @media (max-width: 900px) {
+    .profile-service-inner {
+      grid-template-columns: 1fr;
+    }
+    .pc-only {
+      display: none;
+    }
+  }
+
+  @media (max-width: 540px) {
     .profile-service {
-      padding: 80px 0;
+      padding-top: 20px;
+      padding-bottom: 20px;
     }
     .profile-service-inner {
-      max-width: 1500px;
-      padding: 0 40px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 40px;
-      align-items: start;
+      padding: 0 20px;
     }
-
-    .profile {
-      display: grid;
-      gap: 12px;
-    }
-    h2 {
-      font-size: 24px;
-    }
-    h3 {
-      font-size: 20px;
-    }
-    .marker {
-      font-size: 18px;
-      font-weight: 600;
-      background: linear-gradient(
-        transparent 70%,
-        rgba(102, 230, 202, 0.4) 50%
-      );
-    }
-    .certification {
-      margin-top: 12px;
-    }
-    #ribbon {
-      width: 100%;
-      max-width: 600px;
-      aspect-ratio: 1;
-    }
-    .service-list {
-      margin-top: 12px;
-      display: grid;
-      gap: 20px;
-    }
-
-    .service-list-item {
-      padding: 20px;
-      border: 1px solid rgba(119, 128, 161, 0.2);
-      border-radius: 16px;
-      display: grid;
-      gap: 8px;
-      background-color: white;
-    }
-    .service-list-item:hover {
-      background-color: #ebf8f6;
-    }
-
-    .service-description {
-      color: #555;
-    }
-
-    .service-detail-item {
-      display: flex;
-      align-items: flex-start;
-      font-weight: 500;
-    }
-
-    .icon {
-      margin-right: 5px;
-      height: 16px;
-      width: 16px;
-      color: #22c55e;
-      transform: translateY(5px);
-    }
-
-    @media (max-width: 900px) {
-      .profile-service-inner {
-        grid-template-columns: 1fr;
-      }
-      .pc-only {
-        display: none;
-      }
-    }
-
-    @media (max-width: 540px) {
-      .profile-service {
-        padding-top: 20px;
-        padding-bottom: 20px;
-      }
-      .profile-service-inner {
-        padding: 0 20px;
-      }
-    }
-  </style>
-</div>
+  }
+</style>
