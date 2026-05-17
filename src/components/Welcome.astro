@@ -5,10 +5,10 @@
 <div class="image-wrapper">
   <div class="texts">
     <div class="title-wrapper">
-      <h1 class="title">Frontend Engineer</h1>
+      <h1 class="title" id="title">Frontend Engineer</h1>
     </div>
     <div class="text-wrapper">
-      <h2 class="text-title">Profile</h2>
+      <h2 class="text-title">プロフィール</h2>
       <h3 class="text-name">大川英俊</h3>
       <p class="text-content">
         フロントエンドエンジニアとして数々のプロジェクトを経験。<br /><spa
@@ -34,8 +34,7 @@
 <style>
   .image-wrapper {
     position: relative;
-    height: 170svh;
-    margin-bottom: 300px;
+    padding-bottom: 100px;
   }
 
   .texts {
@@ -46,35 +45,40 @@
     position: sticky;
     top: 40svh;
     color: white;
-    font-size: 60px;
+    font-size: clamp(36px, 4vw, 60px);
     line-height: 1.4;
     font-weight: 500;
+    text-align: center;
   }
 
   .title-wrapper {
     width: 50%;
-    padding-left: 10%;
+    padding-left: 3%;
+    padding-right: 3%;
   }
 
   .text-wrapper {
     width: fit-content;
     margin: 0 auto;
     padding-top: 140svh;
+    padding-left: 0;
+    padding-right: 3%;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
     color: white;
     font-size: 20px;
+    font-size: clamp(15px, 1.1vw, 19px);
     line-height: 2;
   }
 
   .text-title {
-    font-size: 22px;
+    font-size: 1.1em;
     font-weight: 400;
     margin-bottom: 32px;
   }
   .text-name {
-    font-size: 22px;
+    font-size: 1.1em;
     font-weight: 400;
     margin-bottom: 32px;
   }
@@ -110,30 +114,36 @@
     line-height: 1.8;
   }
 
-  @media (max-width: 900px) {
-    h1 {
-      font-size: 48px;
-      letter-spacing: 0;
+  @media (min-width: 1200.1px) {
+    .title {
+      opacity: 1 !important;
+    }
+  }
+
+  @media (max-width: 1200px) {
+    .texts {
+      flex-direction: column;
+    }
+    .title-wrapper {
+      width: 100%;
+      height: 100svh;
+      position: relative;
+    }
+    .title {
+      position: fixed;
+      top: auto;
+      bottom: 40px;
     }
 
-    .catch {
-      font-size: 16px;
+    .text-wrapper {
+      padding-top: 50svh;
+      padding-left: 24px;
+      padding-right: 24px;
     }
   }
   @media (max-width: 540px) {
-    .main-visual-wrapper {
-      background: linear-gradient(
-        67deg,
-        rgba(74, 161, 255, 0) 50%,
-        rgb(74 255 115 / 10%)
-      );
-    }
-    h1 {
-      font-size: 30px;
-    }
-
-    .catch {
-      font-size: 16px;
+    .image-wrapper {
+      padding-bottom: 60px;
     }
   }
 </style>

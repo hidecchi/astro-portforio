@@ -25,12 +25,38 @@ const META_OPACITY_END = 0;
 const META_TRANSMISSION_START = 1.0;
 const META_ENV_INTENSITY_START = 0.65;
 const META_CLEARCOAT_START = 0.7;
+const TITLE_OPACITY_START = 1;
+const TITLE_OPACITY_END = 0;
 /** スクロール連動: 終盤で一気に変化させるイージング */
 const SCROLL_SCRUB_EASE = "power4.out";
+
+/** CSS object-fit: cover と同様に、歪めずに領域を覆う */
+const applyTextureCover = (
+  texture: THREE.Texture,
+  containerAspect: number,
+): void => {
+  const img = texture.image as HTMLImageElement | undefined;
+  if (!img?.width || !img.height) return;
+
+  const imageAspect = img.width / img.height;
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+
+  if (containerAspect > imageAspect) {
+    const repeatY = imageAspect / containerAspect;
+    texture.repeat.set(1, repeatY);
+    texture.offset.set(0, (1 - repeatY) / 2);
+  } else {
+    const repeatX = containerAspect / imageAspect;
+    texture.repeat.set(repeatX, 1);
+    texture.offset.set((1 - repeatX) / 2, 0);
+  }
+};
 
 type Point = { x: number; y: number } | null;
 
 const contactEl = document.querySelector("#contact");
+const titleEl = document.querySelector("#title");
 
 export const initThree = async (): Promise<void> => {
   let tick = 0;
@@ -120,11 +146,7 @@ export const initThree = async (): Promise<void> => {
   scenePallet1.add(planeMeshA);
   sceneResult.add(planeMeshB);
 
-  const bgTexture = new THREE.TextureLoader().load(BG_IMAGE_PATH);
-  bgTexture.colorSpace = THREE.SRGBColorSpace;
-
   const bgMaterial = new THREE.MeshBasicMaterial({
-    map: bgTexture,
     color: new THREE.Color().setScalar(BG_IMAGE_BRIGHTNESS_START),
   });
   const bgPlaneMesh = new THREE.Mesh(
@@ -132,6 +154,17 @@ export const initThree = async (): Promise<void> => {
     bgMaterial,
   );
   sceneBg.add(bgPlaneMesh);
+
+  const applyBgCover = () => {
+    if (bgMaterial.map) applyTextureCover(bgMaterial.map, aspect);
+  };
+
+  new THREE.TextureLoader().load(BG_IMAGE_PATH, (bgTexture) => {
+    bgTexture.colorSpace = THREE.SRGBColorSpace;
+    bgMaterial.map = bgTexture;
+    bgMaterial.needsUpdate = true;
+    applyBgCover();
+  });
 
   const scrollTriggerEl = document.querySelector(".image-wrapper");
 
@@ -161,6 +194,8 @@ export const initThree = async (): Promise<void> => {
 
     bgPlaneMesh.geometry.dispose();
     bgPlaneMesh.geometry = new THREE.PlaneGeometry(2 * aspect, 2);
+
+    applyBgCover();
 
     applyMetaballLayout?.();
 
@@ -280,10 +315,12 @@ export const initThree = async (): Promise<void> => {
     const scrollState = {
       bgBrightness: BG_IMAGE_BRIGHTNESS_START,
       metaOpacity: META_OPACITY_START,
+      titleOpacity: TITLE_OPACITY_START,
     };
     gsap.to(scrollState, {
       bgBrightness: BG_IMAGE_BRIGHTNESS_END,
       metaOpacity: META_OPACITY_END,
+      titleOpacity: TITLE_OPACITY_END,
       ease: SCROLL_SCRUB_EASE,
       scrollTrigger: {
         trigger: scrollTriggerEl,
@@ -300,6 +337,10 @@ export const initThree = async (): Promise<void> => {
         metaMat.envMapIntensity = META_ENV_INTENSITY_START * o;
         metaMat.clearcoat = META_CLEARCOAT_START * o;
         metaballs.visible = o > 0.01;
+
+        if (titleEl instanceof HTMLElement) {
+          titleEl.style.opacity = String(scrollState.titleOpacity);
+        }
       },
     });
   }

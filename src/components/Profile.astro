@@ -59,7 +59,7 @@ const SERVICE_LIST = [
 
 <style>
   .service {
-    padding: 180px 0;
+    padding: 100px 24px;
   }
 
   .profile {
@@ -72,19 +72,11 @@ const SERVICE_LIST = [
   h3 {
     font-size: 20px;
   }
-  .marker {
-    font-size: 18px;
-    font-weight: 600;
-    background: linear-gradient(transparent 70%, rgba(102, 230, 202, 0.4) 50%);
-  }
+
   .certification {
     margin-top: 12px;
   }
-  #ribbon {
-    width: 100%;
-    max-width: 600px;
-    aspect-ratio: 1;
-  }
+
   .service-list {
     margin-top: 12px;
     max-width: 1200px;
@@ -125,11 +117,11 @@ const SERVICE_LIST = [
   }
 
   @media (max-width: 900px) {
-    .profile-service-inner {
-      grid-template-columns: 1fr;
+    .service {
+      padding: 50px 20px;
     }
-    .pc-only {
-      display: none;
+    .service-list {
+      grid-template-columns: 1fr;
     }
   }
 
