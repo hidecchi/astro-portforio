@@ -27,8 +27,15 @@ const META_ENV_INTENSITY_START = 0.65;
 const META_CLEARCOAT_START = 0.7;
 const TITLE_OPACITY_START = 1;
 const TITLE_OPACITY_END = 0;
+/** モバイルのアドレスバー縮小時に足りなくなる分 */
+const CANVAS_HEIGHT_EXTRA = 100;
 /** スクロール連動: 終盤で一気に変化させるイージング */
 const SCROLL_SCRUB_EASE = "power4.out";
+
+const getCanvasSize = () => ({
+  width: document.documentElement.clientWidth,
+  height: window.innerHeight + CANVAS_HEIGHT_EXTRA,
+});
 
 /** CSS object-fit: cover と同様に、歪めずに領域を覆う */
 const applyTextureCover = (
@@ -60,8 +67,8 @@ const titleEl = document.querySelector("#title");
 
 export const initThree = async (): Promise<void> => {
   let tick = 0;
-  let aspect = document.documentElement.clientWidth / window.innerHeight;
-  const originalWidth = document.documentElement.clientWidth;
+  const { width: originalWidth, height: originalHeight } = getCanvasSize();
+  let aspect = originalWidth / originalHeight;
 
   const [sceneSphere, scenePallet1, sceneResult, sceneBg] = [
     new THREE.Scene(),
@@ -75,7 +82,11 @@ export const initThree = async (): Promise<void> => {
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setClearColor(BG_COLOR, 1);
-  renderer.setSize(originalWidth, window.innerHeight);
+  renderer.setSize(originalWidth, originalHeight);
+  document.documentElement.style.setProperty(
+    "--canvas-height-extra",
+    `${CANVAS_HEIGHT_EXTRA}px`,
+  );
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -86,18 +97,9 @@ export const initThree = async (): Promise<void> => {
   const envMap = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
 
   // ---- レンダーターゲット ---- //
-  const rtSPhere = new THREE.WebGLRenderTarget(
-    originalWidth,
-    window.innerHeight,
-  );
-  const rtPallet1 = new THREE.WebGLRenderTarget(
-    originalWidth,
-    window.innerHeight,
-  );
-  const rtPallet2 = new THREE.WebGLRenderTarget(
-    originalWidth,
-    window.innerHeight,
-  );
+  const rtSPhere = new THREE.WebGLRenderTarget(originalWidth, originalHeight);
+  const rtPallet1 = new THREE.WebGLRenderTarget(originalWidth, originalHeight);
+  const rtPallet2 = new THREE.WebGLRenderTarget(originalWidth, originalHeight);
 
   // ---- シェーダロード ---- //
   const [vShader, fShader, planeFShader] = await Promise.all([
@@ -171,8 +173,7 @@ export const initThree = async (): Promise<void> => {
   // ---- リサイズ対応 ---- //
   let lastInnerWidth: null | number = null;
   const onResize = () => {
-    const width = document.documentElement.clientWidth;
-    const height = window.innerHeight;
+    const { width, height } = getCanvasSize();
 
     if (width === lastInnerWidth && isSmartPhone()) return;
     lastInnerWidth = width;
