@@ -11,8 +11,6 @@ const SHADER_PATHS = {
   vertex: new URL("./vertex.glsl", import.meta.url),
   fragment: new URL("./fragment.glsl", import.meta.url),
   planeFragment: new URL("./planefragment.glsl", import.meta.url),
-  ribbonVertex: new URL("./ribbonVertex.glsl", import.meta.url),
-  ribbonFragment: new URL("./ribbonFragment.glsl", import.meta.url),
 };
 const BG_COLOR = 0xffffff;
 const SPHERE_RADIUS = 0.05;
@@ -202,11 +200,6 @@ export const initThree = async (): Promise<void> => {
 
     ScrollTrigger.refresh();
   };
-  const onScroll = () => {
-    // planeMeshB.position.y = (2 * window.pageYOffset) / window.innerHeight;
-  };
-
-  onScroll();
 
   window.addEventListener("resize", onResize);
 
@@ -216,10 +209,6 @@ export const initThree = async (): Promise<void> => {
   let lastTickMouse: Point = null;
 
   const updateMousePosition = (e: MouseEvent) => {
-    // if (e.pageY > window.innerHeight) {
-    //   resetMouse();
-    //   return;
-    // }
     mouse = { x: e.pageX, y: e.clientY };
 
     if (!lastMouse) {
@@ -365,59 +354,52 @@ export const initThree = async (): Promise<void> => {
 
   // ---- アニメーション ---- //
   const clock = new THREE.Clock();
-  let lastPageY = window.pageYOffset;
   const animate = () => {
     tick++;
     let elapsedTime = clock.getDelta() * 2;
-    if (lastPageY !== window.pageYOffset) {
-      lastPageY = window.pageYOffset;
-      onScroll();
-    }
-
-    if (
-      lastTickMouse === null ||
-      (mouse?.x === lastTickMouse?.x && mouse?.y === lastTickMouse?.y)
-    ) {
-      sphereMesh.scale.set(0, 0, 0);
-    } else {
-      let distance = 0,
-        angleRad = 0;
-      if (lastTickMouse && mouse) {
-        const dx = mouse.x - lastTickMouse.x;
-        const dy = mouse.y - lastTickMouse.y;
-        distance = Math.sqrt(dx * dx + dy * dy);
-        angleRad = Math.atan2(dy, dx);
-      }
-
-      const scaleX = Math.max(1.0, distance / 30);
-      sphereMesh.scale.set(scaleX, 1.0, 1.0);
-      sphereMesh.rotation.z = -angleRad;
-    }
-
-    sphereMaterial.uniforms.u_tick.value += elapsedTime * 30;
-
-    updateMetaballs(clock.getElapsedTime());
 
     requestAnimationFrame(animate);
 
-    renderer.setRenderTarget(rtSPhere);
-    renderer.render(sceneSphere, camera);
-
-    const isEven = tick % 2 === 0;
-    planeMaterial.uniforms.u_tex.value = rtSPhere.texture;
-    planeMaterial.uniforms.u_prev.value = isEven
-      ? rtPallet2.texture
-      : rtPallet1.texture;
-    renderer.setRenderTarget(isEven ? rtPallet1 : rtPallet2);
-    renderer.render(scenePallet1, camera);
-
-    renderer.setRenderTarget(null);
     renderer.setClearColor(BG_COLOR, 1);
 
-    console.log(contactEl?.getBoundingClientRect().top);
     if (contactEl && contactEl.getBoundingClientRect().top > 400) {
+      updateMetaballs(clock.getElapsedTime());
+      renderer.setRenderTarget(null);
       renderer.render(sceneBg, camera);
-    } else {
+    } else if (!isSmartPhone()) {
+      if (
+        lastTickMouse === null ||
+        (mouse?.x === lastTickMouse?.x && mouse?.y === lastTickMouse?.y)
+      ) {
+        sphereMesh.scale.set(0, 0, 0);
+      } else {
+        let distance = 0,
+          angleRad = 0;
+        if (lastTickMouse && mouse) {
+          const dx = mouse.x - lastTickMouse.x;
+          const dy = mouse.y - lastTickMouse.y;
+          distance = Math.sqrt(dx * dx + dy * dy);
+          angleRad = Math.atan2(dy, dx);
+        }
+
+        const scaleX = Math.max(1.0, distance / 30);
+        sphereMesh.scale.set(scaleX, 1.0, 1.0);
+        sphereMesh.rotation.z = -angleRad;
+      }
+
+      sphereMaterial.uniforms.u_tick.value += elapsedTime * 30;
+      renderer.setRenderTarget(rtSPhere);
+      renderer.render(sceneSphere, camera);
+
+      const isEven = tick % 2 === 0;
+      planeMaterial.uniforms.u_tex.value = rtSPhere.texture;
+      planeMaterial.uniforms.u_prev.value = isEven
+        ? rtPallet2.texture
+        : rtPallet1.texture;
+      renderer.setRenderTarget(isEven ? rtPallet1 : rtPallet2);
+      renderer.render(scenePallet1, camera);
+
+      renderer.setRenderTarget(null);
       renderer.render(sceneResult, camera);
     }
 
