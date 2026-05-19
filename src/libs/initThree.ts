@@ -36,6 +36,11 @@ const getCanvasSize = () => ({
 });
 
 /** CSS object-fit: cover と同様に、歪めずに領域を覆う */
+const loadTexture = (url: string): Promise<THREE.Texture> =>
+  new Promise((resolve, reject) => {
+    new THREE.TextureLoader().load(url, resolve, undefined, reject);
+  });
+
 const applyTextureCover = (
   texture: THREE.Texture,
   containerAspect: number,
@@ -99,12 +104,14 @@ export const initThree = async (): Promise<void> => {
   const rtPallet1 = new THREE.WebGLRenderTarget(originalWidth, originalHeight);
   const rtPallet2 = new THREE.WebGLRenderTarget(originalWidth, originalHeight);
 
-  // ---- シェーダロード ---- //
-  const [vShader, fShader, planeFShader] = await Promise.all([
+  // ---- シェーダ・背景画像ロード ---- //
+  const [vShader, fShader, planeFShader, bgTexture] = await Promise.all([
     loadGLSLFile(SHADER_PATHS.vertex),
     loadGLSLFile(SHADER_PATHS.fragment),
     loadGLSLFile(SHADER_PATHS.planeFragment),
+    loadTexture(BG_IMAGE_PATH),
   ]);
+  bgTexture.colorSpace = THREE.SRGBColorSpace;
 
   // ---- メッシュ ---- //
   const sphereMaterial = new THREE.ShaderMaterial({
@@ -148,6 +155,8 @@ export const initThree = async (): Promise<void> => {
 
   const bgMaterial = new THREE.MeshBasicMaterial({
     color: new THREE.Color().setScalar(BG_IMAGE_BRIGHTNESS_START),
+    map: bgTexture,
+    toneMapped: false,
   });
   const bgPlaneMesh = new THREE.Mesh(
     new THREE.PlaneGeometry(2 * aspect, 2),
@@ -159,12 +168,7 @@ export const initThree = async (): Promise<void> => {
     if (bgMaterial.map) applyTextureCover(bgMaterial.map, aspect);
   };
 
-  new THREE.TextureLoader().load(BG_IMAGE_PATH, (bgTexture) => {
-    bgTexture.colorSpace = THREE.SRGBColorSpace;
-    bgMaterial.map = bgTexture;
-    bgMaterial.needsUpdate = true;
-    applyBgCover();
-  });
+  applyBgCover();
 
   const scrollTriggerEl = document.querySelector(".image-wrapper");
 
@@ -366,6 +370,7 @@ export const initThree = async (): Promise<void> => {
       updateMetaballs(clock.getElapsedTime());
       renderer.setRenderTarget(null);
       renderer.render(sceneBg, camera);
+      sphereMaterial.uniforms.u_tick.value += elapsedTime * 30;
     } else if (!isSmartPhone()) {
       if (
         lastTickMouse === null ||
