@@ -57,6 +57,7 @@ export const initThree = async (): Promise<void> => {
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setClearColor(BG_COLOR, 1);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1));
   renderer.setSize(originalWidth, originalHeight);
   document.documentElement.style.setProperty(
     "--canvas-height-extra",
@@ -129,7 +130,7 @@ export const initThree = async (): Promise<void> => {
     uniforms: {
       u_brightness: { value: BG_IMAGE_BRIGHTNESS_START },
       u_tick: { value: tick },
-      u_bg_adjust: { value: window.innerWidth < 768 ? 3.0 : 6.0 },
+      u_bg_adjust: { value: window.innerWidth < 768 ? 1.0 : 6.0 },
     },
     vertexShader: vShader,
     fragmentShader: bgFShader,
@@ -173,7 +174,7 @@ export const initThree = async (): Promise<void> => {
     ScrollTrigger.refresh();
 
     if (window.innerWidth < 768) {
-      bgMaterial.uniforms.u_bg_adjust.value = 3.0;
+      bgMaterial.uniforms.u_bg_adjust.value = 1.0;
     } else {
       bgMaterial.uniforms.u_bg_adjust.value = 6.0;
     }
