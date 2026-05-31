@@ -11,18 +11,18 @@ const SHADER_PATHS = {
   vertex: new URL("./vertex.glsl", import.meta.url),
   fragment: new URL("./fragment.glsl", import.meta.url),
   planeFragment: new URL("./planefragment.glsl", import.meta.url),
+  bgFragment: new URL("./bgfragment.glsl", import.meta.url),
 };
 const BG_COLOR = 0xffffff;
 const SPHERE_RADIUS = 0.05;
 const TEXTURE_PATH = "/pic4.png";
-const BG_IMAGE_PATH = "/test4.jpg";
 const BG_IMAGE_BRIGHTNESS_START = 1.0;
 const BG_IMAGE_BRIGHTNESS_END = 0.35;
-const META_OPACITY_START = 0.88;
+const META_OPACITY_START = 0.55;
 const META_OPACITY_END = 0;
 const META_TRANSMISSION_START = 1.0;
-const META_ENV_INTENSITY_START = 0.65;
-const META_CLEARCOAT_START = 0.7;
+const META_ENV_INTENSITY_START = 0.4;
+const META_CLEARCOAT_START = 0.3;
 const TITLE_OPACITY_START = 1;
 const TITLE_OPACITY_END = 0;
 /** モバイルのアドレスバー縮小時に足りなくなる分 */
@@ -34,34 +34,6 @@ const getCanvasSize = () => ({
   width: document.documentElement.clientWidth,
   height: window.innerHeight + CANVAS_HEIGHT_EXTRA,
 });
-
-/** CSS object-fit: cover と同様に、歪めずに領域を覆う */
-const loadTexture = (url: string): Promise<THREE.Texture> =>
-  new Promise((resolve, reject) => {
-    new THREE.TextureLoader().load(url, resolve, undefined, reject);
-  });
-
-const applyTextureCover = (
-  texture: THREE.Texture,
-  containerAspect: number,
-): void => {
-  const img = texture.image as HTMLImageElement | undefined;
-  if (!img?.width || !img.height) return;
-
-  const imageAspect = img.width / img.height;
-  texture.wrapS = THREE.ClampToEdgeWrapping;
-  texture.wrapT = THREE.ClampToEdgeWrapping;
-
-  if (containerAspect > imageAspect) {
-    const repeatY = imageAspect / containerAspect;
-    texture.repeat.set(1, repeatY);
-    texture.offset.set(0, (1 - repeatY) / 2);
-  } else {
-    const repeatX = containerAspect / imageAspect;
-    texture.repeat.set(repeatX, 1);
-    texture.offset.set((1 - repeatX) / 2, 0);
-  }
-};
 
 type Point = { x: number; y: number } | null;
 
@@ -105,13 +77,12 @@ export const initThree = async (): Promise<void> => {
   const rtPallet2 = new THREE.WebGLRenderTarget(originalWidth, originalHeight);
 
   // ---- シェーダ・背景画像ロード ---- //
-  const [vShader, fShader, planeFShader, bgTexture] = await Promise.all([
+  const [vShader, fShader, planeFShader, bgFShader] = await Promise.all([
     loadGLSLFile(SHADER_PATHS.vertex),
     loadGLSLFile(SHADER_PATHS.fragment),
     loadGLSLFile(SHADER_PATHS.planeFragment),
-    loadTexture(BG_IMAGE_PATH),
+    loadGLSLFile(SHADER_PATHS.bgFragment),
   ]);
-  bgTexture.colorSpace = THREE.SRGBColorSpace;
 
   // ---- メッシュ ---- //
   const sphereMaterial = new THREE.ShaderMaterial({
@@ -153,22 +124,21 @@ export const initThree = async (): Promise<void> => {
   scenePallet1.add(planeMeshA);
   sceneResult.add(planeMeshB);
 
-  const bgMaterial = new THREE.MeshBasicMaterial({
-    color: new THREE.Color().setScalar(BG_IMAGE_BRIGHTNESS_START),
-    map: bgTexture,
+  const bgMaterial = new THREE.ShaderMaterial({
     toneMapped: false,
+    uniforms: {
+      u_brightness: { value: BG_IMAGE_BRIGHTNESS_START },
+      u_tick: { value: tick },
+      u_bg_adjust: { value: window.innerWidth < 768 ? 3.0 : 6.0 },
+    },
+    vertexShader: vShader,
+    fragmentShader: bgFShader,
   });
   const bgPlaneMesh = new THREE.Mesh(
     new THREE.PlaneGeometry(2 * aspect, 2),
     bgMaterial,
   );
   sceneBg.add(bgPlaneMesh);
-
-  const applyBgCover = () => {
-    if (bgMaterial.map) applyTextureCover(bgMaterial.map, aspect);
-  };
-
-  applyBgCover();
 
   const scrollTriggerEl = document.querySelector(".image-wrapper");
 
@@ -198,11 +168,15 @@ export const initThree = async (): Promise<void> => {
     bgPlaneMesh.geometry.dispose();
     bgPlaneMesh.geometry = new THREE.PlaneGeometry(2 * aspect, 2);
 
-    applyBgCover();
-
     applyMetaballLayout?.();
 
     ScrollTrigger.refresh();
+
+    if (window.innerWidth < 768) {
+      bgMaterial.uniforms.u_bg_adjust.value = 3.0;
+    } else {
+      bgMaterial.uniforms.u_bg_adjust.value = 6.0;
+    }
   };
 
   window.addEventListener("resize", onResize);
@@ -250,13 +224,13 @@ export const initThree = async (): Promise<void> => {
     metalness: 0,
     ior: 1.15,
     transparent: true,
-    opacity: 0.88,
+    opacity: META_OPACITY_START,
     envMap,
-    envMapIntensity: 0.85,
-    clearcoat: 0.7,
+    envMapIntensity: META_ENV_INTENSITY_START,
+    clearcoat: META_CLEARCOAT_START,
     clearcoatRoughness: 0.03,
     attenuationColor: new THREE.Color(0xf8f6ff),
-    attenuationDistance: 8.0,
+    attenuationDistance: 18.0,
     side: THREE.FrontSide,
   });
   const metaballs = new MarchingCubes(96, metaMat, false, true, 90000);
@@ -305,6 +279,17 @@ export const initThree = async (): Promise<void> => {
 
   sceneBg.add(metaballs);
 
+  /** スクロール位置 0=上端 … 1=終端。opacity だけが START 未満なので、他は fade で正規化する */
+  const applyMetaScrollState = (metaOpacity: number) => {
+    const fade = META_OPACITY_START > 0 ? metaOpacity / META_OPACITY_START : 0;
+
+    metaMat.opacity = metaOpacity;
+    metaMat.transmission = META_TRANSMISSION_START * fade;
+    metaMat.envMapIntensity = META_ENV_INTENSITY_START * fade;
+    metaMat.clearcoat = META_CLEARCOAT_START * fade;
+    metaballs.visible = metaOpacity > 0.01;
+  };
+
   if (scrollTriggerEl) {
     const scrollState = {
       bgBrightness: BG_IMAGE_BRIGHTNESS_START,
@@ -321,22 +306,18 @@ export const initThree = async (): Promise<void> => {
         start: "top top",
         end: "70% top",
         scrub: true,
+        onRefresh: () => applyMetaScrollState(scrollState.metaOpacity),
       },
       onUpdate: () => {
-        bgMaterial.color.setScalar(scrollState.bgBrightness);
-
-        const o = scrollState.metaOpacity;
-        metaMat.opacity = o;
-        metaMat.transmission = META_TRANSMISSION_START * o;
-        metaMat.envMapIntensity = META_ENV_INTENSITY_START * o;
-        metaMat.clearcoat = META_CLEARCOAT_START * o;
-        metaballs.visible = o > 0.01;
+        bgMaterial.uniforms.u_brightness.value = scrollState.bgBrightness;
+        applyMetaScrollState(scrollState.metaOpacity);
 
         if (titleEl instanceof HTMLElement) {
           titleEl.style.opacity = String(scrollState.titleOpacity);
         }
       },
     });
+    applyMetaScrollState(scrollState.metaOpacity);
   }
 
   onResize();
@@ -360,7 +341,8 @@ export const initThree = async (): Promise<void> => {
   const clock = new THREE.Clock();
   const animate = () => {
     tick++;
-    let elapsedTime = clock.getDelta() * 2;
+    const elapsedTime = clock.getDelta() * 2;
+    const tickDelta = elapsedTime * 30;
 
     requestAnimationFrame(animate);
 
@@ -368,9 +350,10 @@ export const initThree = async (): Promise<void> => {
 
     if (contactEl && contactEl.getBoundingClientRect().top > 400) {
       updateMetaballs(clock.getElapsedTime());
+      bgMaterial.uniforms.u_tick.value += tickDelta;
       renderer.setRenderTarget(null);
       renderer.render(sceneBg, camera);
-      sphereMaterial.uniforms.u_tick.value += elapsedTime * 30;
+      sphereMaterial.uniforms.u_tick.value += tickDelta;
     } else if (!isSmartPhone()) {
       if (
         lastTickMouse === null ||
@@ -392,7 +375,7 @@ export const initThree = async (): Promise<void> => {
         sphereMesh.rotation.z = -angleRad;
       }
 
-      sphereMaterial.uniforms.u_tick.value += elapsedTime * 30;
+      sphereMaterial.uniforms.u_tick.value += tickDelta;
       renderer.setRenderTarget(rtSPhere);
       renderer.render(sceneSphere, camera);
 
