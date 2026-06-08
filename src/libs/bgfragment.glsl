@@ -24,5 +24,5 @@ void main() {
 
     gl_FragColor = vec4(cyclic(vec3(vUv.x * u_bg_adjust, vUv.y * 5.0f, u_tick * 0.01f)) * 0.3f + vec3(-0.0f, 0.7f, 0.8f), 0.8f);
     // fragColor = buffer;
-    gl_FragColor = vec4(0.2, 0.5-gl_FragColor.x , 0.6-gl_FragColor.x, 1.0f);
+    gl_FragColor = vec4(1.0, 1.0-gl_FragColor.x , 1.0, 1.0f);
 }

@@ -1,11 +1,15 @@
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import * as THREE from "three";
-import { isSmartPhone, loadGLSLFile } from "../utils/utils";
+import { isAndroid, isSmartPhone, loadGLSLFile } from "../utils/utils";
 import { MarchingCubes } from "three/examples/jsm/Addons.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
 gsap.registerPlugin(ScrollTrigger);
+
+if (isAndroid()) {
+  document.body.classList.add("is-android");
+}
 
 const SHADER_PATHS = {
   vertex: new URL("./vertex.glsl", import.meta.url),
