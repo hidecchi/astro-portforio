@@ -144,7 +144,6 @@ img {
 *::before,
 *::after {
   box-sizing: border-box;
-  color: #333;
 }
 
 h1,

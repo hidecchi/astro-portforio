@@ -2,8 +2,6 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import * as THREE from "three";
 import { isAndroid, isSmartPhone, loadGLSLFile } from "../utils/utils";
-import { MarchingCubes } from "three/examples/jsm/Addons.js";
-import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -16,17 +14,17 @@ const SHADER_PATHS = {
   fragment: new URL("./fragment.glsl", import.meta.url),
   planeFragment: new URL("./planefragment.glsl", import.meta.url),
   bgFragment: new URL("./bgfragment.glsl", import.meta.url),
+  blackFragment: new URL("./blackfragment.glsl", import.meta.url),
 };
 const BG_COLOR = 0xffffff;
 const SPHERE_RADIUS = 0.05;
 const TEXTURE_PATH = "/pic4.png";
+const BG_TEXTURE_PATH = "/test4.jpg";
 const BG_IMAGE_BRIGHTNESS_START = 1.0;
 const BG_IMAGE_BRIGHTNESS_END = 0.35;
-const META_OPACITY_START = 0.55;
+const META_OPACITY_START = 1.0;
 const META_OPACITY_END = 0;
-const META_TRANSMISSION_START = 1.0;
-const META_ENV_INTENSITY_START = 0.4;
-const META_CLEARCOAT_START = 0.3;
+const META_OBJECT_X = 0.28;
 const TITLE_OPACITY_START = 1;
 const TITLE_OPACITY_END = 0;
 /** モバイルのアドレスバー縮小時に足りなくなる分 */
@@ -73,21 +71,20 @@ export const initThree = async (): Promise<void> => {
   renderer.toneMappingExposure = 1.0;
   document.body.appendChild(renderer.domElement);
 
-  const pmremGenerator = new THREE.PMREMGenerator(renderer);
-  const envMap = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
-
   // ---- レンダーターゲット ---- //
   const rtSPhere = new THREE.WebGLRenderTarget(originalWidth, originalHeight);
   const rtPallet1 = new THREE.WebGLRenderTarget(originalWidth, originalHeight);
   const rtPallet2 = new THREE.WebGLRenderTarget(originalWidth, originalHeight);
 
   // ---- シェーダ・背景画像ロード ---- //
-  const [vShader, fShader, planeFShader, bgFShader] = await Promise.all([
-    loadGLSLFile(SHADER_PATHS.vertex),
-    loadGLSLFile(SHADER_PATHS.fragment),
-    loadGLSLFile(SHADER_PATHS.planeFragment),
-    loadGLSLFile(SHADER_PATHS.bgFragment),
-  ]);
+  const [vShader, fShader, planeFShader, bgFShader, blackFShader] =
+    await Promise.all([
+      loadGLSLFile(SHADER_PATHS.vertex),
+      loadGLSLFile(SHADER_PATHS.fragment),
+      loadGLSLFile(SHADER_PATHS.planeFragment),
+      loadGLSLFile(SHADER_PATHS.bgFragment),
+      loadGLSLFile(SHADER_PATHS.blackFragment),
+    ]);
 
   // ---- メッシュ ---- //
   const sphereMaterial = new THREE.ShaderMaterial({
@@ -135,6 +132,7 @@ export const initThree = async (): Promise<void> => {
       u_brightness: { value: BG_IMAGE_BRIGHTNESS_START },
       u_tick: { value: tick },
       u_bg_adjust: { value: window.innerWidth < 768 ? 1.0 : 6.0 },
+      u_tex: { value: new THREE.TextureLoader().load(BG_TEXTURE_PATH) },
     },
     vertexShader: vShader,
     fragmentShader: bgFShader,
@@ -173,7 +171,7 @@ export const initThree = async (): Promise<void> => {
     bgPlaneMesh.geometry.dispose();
     bgPlaneMesh.geometry = new THREE.PlaneGeometry(2 * aspect, 2);
 
-    applyMetaballLayout?.();
+    applyBlackObjectLayout?.();
 
     ScrollTrigger.refresh();
 
@@ -210,89 +208,46 @@ export const initThree = async (): Promise<void> => {
     lastMouse = mouse;
   };
 
-  // METABALLS
-  sceneBg.environment = envMap;
-  sceneBg.add(new THREE.AmbientLight(0xffffff, 0.35));
-  sceneBg.add(new THREE.HemisphereLight(0xffffff, 0x6a7a9a, 0.45));
-  const metaLight = new THREE.DirectionalLight(0xffffff, 1.4);
-  metaLight.position.set(1.2, 1.5, 2);
-  sceneBg.add(metaLight);
-  const metaRim = new THREE.DirectionalLight(0xc8e0ff, 0.7);
-  metaRim.position.set(-1.5, 0.3, 1);
-  sceneBg.add(metaRim);
-
-  const metaMat = new THREE.MeshPhysicalMaterial({
-    vertexColors: true,
-    transmission: 1.0,
-    thickness: 0.0,
-    roughness: 0.02,
-    metalness: 0,
-    ior: 1.15,
+  // ---- 黒オブジェクト（レイマーチング） ---- //
+  const blackObjectMaterial = new THREE.ShaderMaterial({
     transparent: true,
-    opacity: META_OPACITY_START,
-    envMap,
-    envMapIntensity: META_ENV_INTENSITY_START,
-    clearcoat: META_CLEARCOAT_START,
-    clearcoatRoughness: 0.03,
-    attenuationColor: new THREE.Color(0xf8f6ff),
-    attenuationDistance: 18.0,
-    side: THREE.FrontSide,
+    depthWrite: false,
+    toneMapped: false,
+    uniforms: {
+      u_tick: { value: 0 },
+      u_opacity: { value: META_OPACITY_START },
+      u_aspect: { value: aspect },
+    },
+    vertexShader: vShader,
+    fragmentShader: blackFShader,
   });
-  const metaballs = new MarchingCubes(96, metaMat, false, true, 90000);
-  metaballs.isolation = 85;
-  metaballs.renderOrder = 1;
 
-  const META_BALL_SCALE = 0.9 * 2.3;
-  const applyMetaballLayout = () => {
-    metaballs.scale.setScalar(META_BALL_SCALE);
-    metaballs.position.set(aspect * 0.28, 0, 0);
-  };
-  applyMetaballLayout();
+  const blackObjectMesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(2, 2),
+    blackObjectMaterial,
+  );
+  blackObjectMesh.position.x = aspect / 2;
+  blackObjectMesh.position.z = 0.01;
+  blackObjectMesh.renderOrder = 1;
 
-  const metaColors = [
-    new THREE.Color(0xf0ecff),
-    new THREE.Color(0xffeef6),
-    new THREE.Color(0xecf6ff),
-    new THREE.Color(0xeefff8),
-  ];
-  const updateMetaballs = (time: number) => {
-    const cx = 0.5;
-    const cy = 0.5;
-    const cz = 0.5;
-
-    metaballs.reset();
-    metaballs.addBall(cx, cy, cz, 1.15, 22, metaColors[0]);
-
-    const wobbleCount = 4;
-    const orbit = 0.055;
-    const breathe = 0.018;
-    for (let i = 0; i < wobbleCount; i++) {
-      const phase = (i / wobbleCount) * Math.PI * 2;
-      const angle = time * 0.35 + phase;
-      const angle2 = time * 0.48 + phase * 1.7;
-      metaballs.addBall(
-        cx + Math.cos(angle) * orbit,
-        cy + Math.sin(angle2) * orbit * 0.85,
-        cz + Math.sin(angle) * orbit,
-        0.22 + breathe * Math.sin(time * 0.6 + phase),
-        16,
-        metaColors[(i + 1) % metaColors.length],
-      );
+  const applyBlackObjectLayout = () => {
+    blackObjectMesh.geometry.dispose();
+    blackObjectMesh.geometry = new THREE.PlaneGeometry(2, 2);
+    blackObjectMesh.position.x = aspect / 2;
+    blackObjectMaterial.uniforms.u_aspect.value = aspect;
+    if (window.innerWidth < 1200) {
+      blackObjectMesh.position.x = 0;
+    } else {
+      blackObjectMesh.position.x = aspect / 2;
     }
-    metaballs.update();
   };
+  applyBlackObjectLayout();
 
-  sceneBg.add(metaballs);
+  sceneBg.add(blackObjectMesh);
 
-  /** スクロール位置 0=上端 … 1=終端。opacity だけが START 未満なので、他は fade で正規化する */
-  const applyMetaScrollState = (metaOpacity: number) => {
-    const fade = META_OPACITY_START > 0 ? metaOpacity / META_OPACITY_START : 0;
-
-    metaMat.opacity = metaOpacity;
-    metaMat.transmission = META_TRANSMISSION_START * fade;
-    metaMat.envMapIntensity = META_ENV_INTENSITY_START * fade;
-    metaMat.clearcoat = META_CLEARCOAT_START * fade;
-    metaballs.visible = metaOpacity > 0.01;
+  const applyBlackObjectScrollState = (opacity: number) => {
+    blackObjectMaterial.uniforms.u_opacity.value = opacity;
+    blackObjectMesh.visible = opacity > 0.01;
   };
 
   if (scrollTriggerEl) {
@@ -311,18 +266,18 @@ export const initThree = async (): Promise<void> => {
         start: "top top",
         end: "70% top",
         scrub: true,
-        onRefresh: () => applyMetaScrollState(scrollState.metaOpacity),
+        onRefresh: () => applyBlackObjectScrollState(scrollState.metaOpacity),
       },
       onUpdate: () => {
         bgMaterial.uniforms.u_brightness.value = scrollState.bgBrightness;
-        applyMetaScrollState(scrollState.metaOpacity);
+        applyBlackObjectScrollState(scrollState.metaOpacity);
 
         if (titleEl instanceof HTMLElement) {
           titleEl.style.opacity = String(scrollState.titleOpacity);
         }
       },
     });
-    applyMetaScrollState(scrollState.metaOpacity);
+    applyBlackObjectScrollState(scrollState.metaOpacity);
   }
 
   onResize();
@@ -354,8 +309,8 @@ export const initThree = async (): Promise<void> => {
     renderer.setClearColor(BG_COLOR, 1);
 
     if (contactEl && contactEl.getBoundingClientRect().top > 400) {
-      updateMetaballs(clock.getElapsedTime());
       bgMaterial.uniforms.u_tick.value += tickDelta;
+      blackObjectMaterial.uniforms.u_tick.value += tickDelta;
       renderer.setRenderTarget(null);
       renderer.render(sceneBg, camera);
       sphereMaterial.uniforms.u_tick.value += tickDelta;
